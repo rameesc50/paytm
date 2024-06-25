@@ -1,0 +1,49 @@
+import Adafruit_DHT
+import csv
+import time
+from datetime import datetime
+
+# Configuration
+SENSOR = Adafruit_DHT.DHT22  # Change to Adafruit_DHT.DHT11 if using DHT11
+PIN = 4  # GPIO pin connected to the sensor
+LOG_INTERVAL = 60  # Log temperature every 60 seconds
+CSV_FILE = 'temperature_log.csv'
+
+def read_temperature():
+    """Read temperature and humidity from the sensor."""
+    humidity, temperature = Adafruit_DHT.read_retry(SENSOR, PIN)
+    if humidity is not None and temperature is not None:
+        return temperature, humidity
+    else:
+        print('Failed to get reading from the sensor. Try again!')
+        return None, None
+
+def log_to_csv(timestamp, temperature, humidity):
+    """Log temperature and humidity to a CSV file."""
+    with open(CSV_FILE, 'a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([timestamp, temperature, humidity])
+
+def main():
+    # Initialize CSV file with headers if it doesn't exist
+    try:
+        with open(CSV_FILE, 'x', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['Timestamp', 'Temperature (C)', 'Humidity (%)'])
+    except FileExistsError:
+        pass
+
+    while True:
+        # Read temperature and humidity
+        temperature, humidity = read_temperature()
+        if temperature is not None and humidity is not None:
+            # Get the current timestamp
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            # Log to CSV
+            log_to_csv(timestamp, temperature, humidity)
+            print(f'{timestamp} - Temp: {temperature:.2f}C  Humidity: {humidity:.2f}%')
+        # Wait for the next log interval
+        time.sleep(LOG_INTERVAL)
+
+if __name__ == '__main__':
+    main()
